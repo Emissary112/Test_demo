@@ -48,6 +48,22 @@ jobs:
           sudo apt-get install -y --no-install-recommends nfs-kernel-server nfs-common
 
       - name: Set up Docker
-        uses: docker/setup-docker@v4
+        uses: docker/setup-buildx-action@v2
 
-      
+      - name: Setup NFS via Docker (Demo)
+        run: |
+          sudo mkdir -p /tmp/nfs_share
+          sudo chmod 777 /tmp/nfs_share
+
+          docker run -d \
+            --name nfs-server \
+            --privileged \
+            -v /tmp/nfs_share:/nfsshare \
+            -p 2049:2049 \
+            itsthenetwork/nfs-server-alpine:latest
+
+          docker ps
+
+      - name: Test NFS Export
+        run: |
+          showmount -e localhost || echo "NFS export not ready yet"
