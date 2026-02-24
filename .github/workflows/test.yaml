@@ -4,7 +4,7 @@ run-name: Infra Install Demo
 on:
   push:
     branches:
-      - master          # 改成你的主分支名稱
+      - master  # 改成你的主分支名稱
 
   workflow_dispatch:
 
@@ -32,34 +32,22 @@ jobs:
 
       - name: Install Required Packages
         run: |
-          sudo apt-get update
+          # 修復可能的破損套件
+          sudo dpkg --configure -a
+          sudo apt-get install -f -y
+          sudo apt-mark unhold nfs-kernel-server
+
+          # 更新套件清單與升級
+          sudo apt-get update --fix-missing
           sudo apt-get upgrade -y
-          sudo apt-get install -y \
-            curl wget git ansible \
-            openssh-server \
-            nfs-kernel-server nfs-common \
-            docker.io
 
-      - name: Start Docker
-        run: |
-          sudo systemctl start docker
-          sudo systemctl enable docker
+          # 安裝基本工具
+          sudo apt-get install -y --no-install-recommends curl wget git ansible openssh-server
 
-      - name: Setup NFS via Docker (Demo)
-        run: |
-          sudo mkdir -p /tmp/nfs_share
-          sudo chmod 777 /tmp/nfs_share
+          # 安裝 NFS
+          sudo apt-get install -y --no-install-recommends nfs-kernel-server nfs-common
 
-          docker run -d \
-            --name nfs-server \
-            --privileged \
-            -v /tmp/nfs_share:/nfsshare \
-            -p 2049:2049 \
-            itsthenetwork/nfs-server-alpine:latest
+      - name: Set up Docker
+        uses: docker/setup-docker@v4
 
-          docker ps
-
-      - name: Test NFS Export
-        run: |
-          sudo apt-get install -y nfs-common
-          showmount -e localhost || echo "NFS export not ready yet"
+      
