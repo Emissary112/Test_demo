@@ -1,0 +1,65 @@
+name: Install Demo
+run-name: Infra Install Demo
+
+on:
+  push:
+    branches:
+      - main          # 改成你的主分支名稱
+
+  workflow_dispatch:
+
+  schedule:
+    - cron: '0 15 * * *'
+
+jobs:
+  master-node-install:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Linux Version
+        run: |
+          source /etc/os-release
+          echo "$PRETTY_NAME"
+          echo "安裝成功"
+
+      - name: Set Hostname and Get IP
+        run: |
+          sudo hostnamectl set-hostname Test-Dev
+          echo "MASTER_HOSTNAME=$(hostname)" >> $GITHUB_ENV
+          echo "MASTER_IP=$(hostname -I | awk '{print $1}')" >> $GITHUB_ENV
+
+      - name: Install Required Packages
+        run: |
+          sudo apt-get update
+          sudo apt-get upgrade -y
+          sudo apt-get install -y \
+            curl wget git ansible \
+            openssh-server \
+            nfs-kernel-server nfs-common \
+            docker.io
+
+      - name: Start Docker
+        run: |
+          sudo systemctl start docker
+          sudo systemctl enable docker
+
+      - name: Setup NFS via Docker (Demo)
+        run: |
+          sudo mkdir -p /tmp/nfs_share
+          sudo chmod 777 /tmp/nfs_share
+
+          docker run -d \
+            --name nfs-server \
+            --privileged \
+            -v /tmp/nfs_share:/nfsshare \
+            -p 2049:2049 \
+            itsthenetwork/nfs-server-alpine:latest
+
+          docker ps
+
+      - name: Test NFS Export
+        run: |
+          sudo apt-get install -y nfs-common
+          showmount -e localhost || echo "NFS export not ready yet"
