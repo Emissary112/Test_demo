@@ -4,7 +4,7 @@ run-name: Infra Install Demo
 on:
   push:
     branches:
-      - main          # 改成你的主分支名稱
+      - master          # 改成你的主分支名稱
 
   workflow_dispatch:
 
